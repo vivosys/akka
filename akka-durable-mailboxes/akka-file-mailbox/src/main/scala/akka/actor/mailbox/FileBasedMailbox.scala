@@ -4,7 +4,6 @@
 
 package akka.actor.mailbox
 
-import org.apache.commons.io.FileUtils
 import akka.actor.ActorContext
 import akka.dispatch.{ Envelope, MessageQueue }
 import akka.event.Logging
@@ -14,6 +13,10 @@ import com.typesafe.config.Config
 import akka.util.NonFatal
 import akka.config.ConfigurationException
 import akka.actor.ActorSystem
+import java.io.IOException
+import journal.io.api.{ Journal, Location }
+import java.lang.{ Iterable ⇒ JIterable }
+import java.util.{ Iterator ⇒ JIterator }
 
 class FileBasedMailboxType(systemSettings: ActorSystem.Settings, config: Config) extends MailboxType {
   private val settings = new FileBasedMailboxSettings(systemSettings, config)
@@ -25,55 +28,64 @@ class FileBasedMailboxType(systemSettings: ActorSystem.Settings, config: Config)
 
 class FileBasedMessageQueue(_owner: ActorContext, val settings: FileBasedMailboxSettings) extends DurableMessageQueue(_owner) with DurableMessageSerialization {
 
+  class AkkaJournal(name: String, settings: FileBasedMailboxSettings) extends Journal {
+
+    val dir = new java.io.File(settings.QueuePath)
+    if (!dir.exists) dir.mkdirs()
+    if (!dir.isDirectory) throw new IOException("Couldn't create mailbox directory '" + dir + "'")
+
+    this setDirectory dir
+    this setArchiveFiles settings.UseArchive
+    this setChecksum settings.UseChecksum
+    this setMaxFileLength settings.MaxFileLength
+    this setDirectoryArchive new java.io.File(settings.ArchivePath)
+    this setDisposeInterval settings.DisposeInterval
+    this.setFilePrefix(name)
+    this.setFileSuffix(".mbox")
+    this setMaxWriteBatchSize settings.MaxWriteBatchSize
+    this setPhysicalSync settings.UsePhysicalSync
+    //journal.setReplicationTarget(system.dynamicAccess.createInstanceFor())
+
+    private var currentRead: JIterator[Location] = redo().iterator()
+
+    def dequeue(): Array[Byte] = {
+      if (!currentRead.hasNext)
+        currentRead = redo().iterator()
+
+      if (currentRead.hasNext) {
+        val data = read(currentRead.next(), Journal.ReadType.SYNC) // TODO read async?
+        currentRead.remove() // Remove the entry once it's out
+        data
+      } else null
+    }
+
+    def enqueue(data: Array[Byte]) {
+      write(data, Journal.WriteType.SYNC) //TODO write sync?
+    }
+  }
+
   val log = Logging(system, "FileBasedMessageQueue")
 
-  val queuePath = settings.QueuePath
-
-  private val queue = try {
-    try { FileUtils.forceMkdir(new java.io.File(queuePath)) } catch { case NonFatal(_) ⇒ {} }
-    val queue = new filequeue.PersistentQueue(queuePath, name, settings, log)
-    queue.setup // replays journal
-    queue.discardExpired
-    queue
+  private val journal = try {
+    val journal = new AkkaJournal(name, settings)
+    journal.open()
+    journal
   } catch {
-    case e: Exception ⇒
+    case NonFatal(e) ⇒
       log.error(e, "Could not create a file-based mailbox")
       throw e
   }
 
-  def enqueue(receiver: ActorRef, envelope: Envelope) {
-    queue.add(serialize(envelope))
+  def enqueue(receiver: ActorRef, envelope: Envelope): Unit = journal.enqueue(serialize(envelope))
+
+  def dequeue(): Envelope = journal.dequeue() match {
+    case null ⇒ null
+    case some ⇒ deserialize(some)
   }
 
-  def dequeue(): Envelope = try {
-    val item = queue.remove
-    if (item.isDefined) {
-      queue.confirmRemove(item.get.xid)
-      deserialize(item.get.data)
-    } else null
-  } catch {
-    case e: java.util.NoSuchElementException ⇒ null
-    case e: Exception ⇒
-      log.error(e, "Couldn't dequeue from file-based mailbox")
-      throw e
-  }
-
-  def numberOfMessages: Int = {
-    queue.length.toInt
-  }
+  def numberOfMessages: Int = 0
 
   def hasMessages: Boolean = numberOfMessages > 0
 
-  /**
-   * Completely delete the queue.
-   */
-  def remove: Boolean = try {
-    queue.remove
-    true
-  } catch {
-    case NonFatal(_) ⇒ false
-  }
-
   def cleanUp(owner: ActorContext, deadLetters: MessageQueue): Unit = ()
-
 }

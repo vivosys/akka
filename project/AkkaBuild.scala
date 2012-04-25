@@ -333,6 +333,7 @@ object AkkaBuild extends Build {
   override lazy val settings = super.settings ++ buildSettings ++ Seq(
       resolvers += "Sonatype Snapshot Repo" at "https://oss.sonatype.org/content/repositories/snapshots/",
       resolvers += "Twitter Public Repo" at "http://maven.twttr.com", // This will be going away with com.mongodb.async's next release
+      resolvers += "Journal.IO" at "https://raw.github.com/sbtourist/Journal.IO/master/m2/repo", // This will be going away with com.mongodb.async's next release
       shellPrompt := { s => Project.extract(s).currentProject.id + " > " }
     )
 
@@ -444,7 +445,7 @@ object Dependencies {
 
   val mailboxes = Seq(Test.scalatest, Test.junit)
 
-  val fileMailbox = Seq(commonsIo, Test.scalatest, Test.junit)
+  val fileMailbox = Seq(journalio, Test.commonsIo, Test.scalatest, Test.junit)
 
   val beanstalkMailbox = Seq(beanstalk, Test.junit)
 
@@ -497,6 +498,7 @@ object Dependency {
     val Slf4j        = "1.6.4"
     val Spring       = "3.0.5.RELEASE"
     val Zookeeper    = "3.4.0"
+    val CommonsIO    = "2.0.1"
   }
 
   // Compile
@@ -505,9 +507,10 @@ object Dependency {
   val camelCore     = "org.apache.camel"            % "camel-core"             % V.Camel      // ApacheV2
   val camelSpring   = "org.apache.camel"            % "camel-spring"           % V.Camel      // ApacheV2
   val commonsCodec  = "commons-codec"               % "commons-codec"          % "1.4"        // ApacheV2
-  val commonsIo     = "commons-io"                  % "commons-io"             % "2.0.1"      // ApacheV2
+  val commonsIo     = "commons-io"                  % "commons-io"             % V.CommonsIO  // ApacheV2
   val commonsPool   = "commons-pool"                % "commons-pool"           % "1.5.6"      // ApacheV2
   val jmxClient     = "cmdline-jmxclient"           % "cmdline-jmxclient"      % "0.10.3"     // LGPL
+  val journalio     = "journalio"                   % "journalio"              % "1.1"        // ApacheV2
   val mongoAsync    = "com.mongodb.async"           % "mongo-driver_2.9.0-1"   % "0.2.9-1"    // ApacheV2
   val netty         = "io.netty"                    % "netty"                  % V.Netty      // ApacheV2
   val protobuf      = "com.google.protobuf"         % "protobuf-java"          % V.Protobuf   // New BSD
@@ -536,6 +539,7 @@ object Dependency {
   // Test
 
   object Test {
+    val commonsIo   = "commons-io"                  % "commons-io"          % V.CommonsIO  % "test" // ApacheV2
     val commonsColl = "commons-collections"         % "commons-collections" % "3.2.1"      % "test" // ApacheV2
     val commonsMath = "org.apache.commons"          % "commons-math"        % "2.1"        % "test" // ApacheV2
     val junit       = "junit"                       % "junit"               % "4.5"        % "test" // Common Public License 1.0
