@@ -4,8 +4,8 @@
 
 package akka
 
-import sbt._
-import sbt.Keys._
+import _root_.sbt._
+import _root_.sbt.Keys._
 import com.typesafe.sbtmultijvm.MultiJvmPlugin
 import com.typesafe.sbtmultijvm.MultiJvmPlugin.{ MultiJvm, extraOptions, jvmOptions, scalatestOptions }
 import com.typesafe.schoir.SchoirPlugin.schoirSettings
@@ -336,7 +336,7 @@ object AkkaBuild extends Build {
       shellPrompt := { s => Project.extract(s).currentProject.id + " > " }
     )
 
-  lazy val baseSettings = Defaults.defaultSettings ++ Publish.settings
+  lazy val baseSettings = Defaults.defaultSettings ++ Publish.settings ++ MultiNode.settings
 
   lazy val parentSettings = baseSettings ++ Seq(
     publishArtifact in Compile := false
