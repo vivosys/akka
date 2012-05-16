@@ -336,7 +336,7 @@ object AkkaBuild extends Build {
       shellPrompt := { s => Project.extract(s).currentProject.id + " > " }
     )
 
-  lazy val baseSettings = Defaults.defaultSettings ++ Publish.settings ++ MultiNode.settings
+  lazy val baseSettings = Defaults.defaultSettings ++ Publish.settings
 
   lazy val parentSettings = baseSettings ++ Seq(
     publishArtifact in Compile := false
