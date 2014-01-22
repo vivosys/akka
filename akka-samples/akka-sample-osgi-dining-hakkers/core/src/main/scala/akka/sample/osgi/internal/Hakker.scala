@@ -161,6 +161,7 @@ class Hakker(name: String, chair: Int) extends Actor {
       pubStateChange("waiting", "thinking")
       become(thinking(left, right) orElse managementEvents)
       system.scheduler.scheduleOnce(5 seconds, self, Eat)
+    case Identify => identify("Waiting")
   }
 
   def managementEvents: Receive = {
@@ -171,6 +172,10 @@ class Hakker(name: String, chair: Int) extends Actor {
       context watch sender
     case Terminated(subscriber) =>
       subscribers -= subscriber
+  }
+
+  def initializing: Receive = {
+    case Identify => identify("Initializing")
   }
 
   def identify(busyWith: String): Unit = {
@@ -184,7 +189,7 @@ class Hakker(name: String, chair: Int) extends Actor {
   }
 
   //All hakkers start in a non-eating state
-  def receive = managementEvents
+  def receive = initializing orElse managementEvents
 
   def pubStateChange(from: String, to: String): Unit = {
     val chg = HakkerStateChange(name, from, to)
