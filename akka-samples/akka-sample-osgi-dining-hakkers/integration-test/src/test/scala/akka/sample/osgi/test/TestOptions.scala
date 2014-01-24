@@ -23,13 +23,6 @@ object TestOptions {
       editConfigurationFilePut("etc/config.properties", "karaf.framework", "equinox"))
   }
 
-  def testBundles(): PaxOption = {
-    new DefaultCompositeOption(
-      mavenBundle("com.typesafe.akka", "akka-testkit_%s".format(scalaDepVersion)).versionAsInProject,
-      mavenBundle("org.scalatest", "scalatest_%s".format(scalaDepVersion)).versionAsInProject,
-      junitBundles)
-  }
-
   def debugOptions(level: LogLevelOption.LogLevel = LogLevelOption.LogLevel.INFO, debugPort: Option[Int] = None): PaxOption = {
     val options: List[PaxOption] = List(logLevel(level), configureConsole().startLocalConsole(), configureConsole().startRemoteShell()) ++
       debugPort.toList.map(p => debugConfiguration(String.valueOf(p), true))
@@ -38,8 +31,7 @@ object TestOptions {
 
   def karafOptionsWithTestBundles(useDeployFolder: Boolean = false, extractInTargetFolder: Boolean = true): PaxOption = {
     new DefaultCompositeOption(
-      karafOptions(useDeployFolder, extractInTargetFolder),
-      testBundles())
+      karafOptions(useDeployFolder, extractInTargetFolder))
   }
 
   def featureDiningHakkers(): PaxOption = {
