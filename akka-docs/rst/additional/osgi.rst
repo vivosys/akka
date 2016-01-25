@@ -100,6 +100,13 @@ Configuring the OSGi Framework
 To use Akka in an OSGi environment, the container must be configured such that the ``org.osgi.framework.bootdelegation``
 property delegates the ``sun.misc`` package to the boot classloader instead of resolving it through the normal OSGi class space.
 
+Intended Use
+------------
+
+Akka only supports the usage of an ActorSystem strictly confined to a single OSGi module (and its dependency subtree, which then
+naturally includes akka-actor). This means that the approach of offering an ActorSystem as a service to which Actors can be
+deployed dynamically via other bundles is not recommended — an ActorSystem and its contained actors are not dynamic in this way.
+
 Activator
 ---------
 
